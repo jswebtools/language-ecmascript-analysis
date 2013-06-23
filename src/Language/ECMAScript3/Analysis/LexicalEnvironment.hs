@@ -1,6 +1,6 @@
 -- | A lexical environment analysis of ECMAScript programs
 
-module Language.ECMAScript3.Analysis.Environment
+module Language.ECMAScript3.Analysis.LexicalEnvironment
   ( env
   , localVars
   , EnvTree (..)

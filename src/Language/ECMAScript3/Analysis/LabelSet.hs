@@ -3,8 +3,8 @@
 -- section 12.12. The result of this analysis are useful for building
 -- control-flow graphs.
 
-module Language.ECMAScript3.Analysis.LabelSets (annotateLabelSets 
-                                               ,Label(..)) where
+module Language.ECMAScript3.Analysis.LabelSet (annotateLabelSets 
+                                              ,Label(..)) where
 
 import Language.ECMAScript3.Syntax
 import Language.ECMAScript3.Syntax.Annotations

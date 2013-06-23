@@ -4,9 +4,9 @@ function foo(x) {
 
 /*
 
-> module Test.EnvTest1 where
+> module EnvTest1 where
 
-> import Test.Util.Environment
+> import Util.Environment
 
 > main = do
 >   stmts <- testFile "Test/EnvTest1.lhs"
