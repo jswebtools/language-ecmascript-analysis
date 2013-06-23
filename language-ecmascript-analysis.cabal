@@ -18,6 +18,7 @@ bug-reports:         http://github.com/jswebtools/language-ecmascript-analysis/i
 category:            Language
 build-type:          Simple
 stability:           experimental
+Tested-with:    GHC==7.6.3
 
 source-repository head
    type: git
