@@ -19,7 +19,11 @@ import Data.Typeable (Typeable)
 -- the spec)
 data Label = Label String
            | EmptyLabel
-             deriving (Ord, Eq, Show, Data, Typeable)
+             deriving (Ord, Eq, Data, Typeable)
+
+instance Show Label where
+  show (Label s) = s
+  show EmptyLabel = ""
 
 -- | Annotates statements with their label sets; example use:
 --
