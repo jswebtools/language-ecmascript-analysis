@@ -25,10 +25,14 @@ instance Show Label where
   show (Label s) = s
   show EmptyLabel = ""
 
--- | Annotates statements with their label sets; example use:
+-- | Annotates statements with their label sets. Assuming you've also imported
+-- 'Language.ECMAScript3.Syntax.Annotations', 'Control.Arrow' and
+-- 'Data.Set', the example use would be:
 --
--- >>> let jsa = reannotate (\a -> (a, Set.empty))
--- >>> in  annotateLabelSets jsa snd (\labs (a, ls) -> (a, labs `Set.union` ls))
+-- @
+-- lsAnalysis :: 'JavaScript' a -> 'JavaScript' (a, 'Set' 'Label')  
+-- lsAnalysis = annotateLabelSets snd (\\labs -> second $ union labs) . reannotate (\a -> (a, empty))
+-- @
 annotateLabelSets :: Data a =>
                      (a -> Set Label) -- ^ annotation read function
                   -> (Set Label -> a -> a) -- ^ annotation write function
