@@ -1,0 +1,2 @@
+=0.9.1=
+Fixed documentation for Language.ECMAScript3.Analysis.LabelSet, removed the (now obsolete) test-suite.

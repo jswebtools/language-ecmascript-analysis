@@ -2,10 +2,10 @@
 --  further documentation, see http://haskell.org/cabal/users-guide/
 
 name:                language-ecmascript-analysis
-version:             0.9
+version:             0.9.1
 cabal-version:	     >= 1.10
 copyright:          (c) 2007-2012 Brown University, (c) 2008-2010 Claudiu Saftoiu,
-                    (c) 2012-2013 Stevens Institute of Technology
+                    (c) 2012-2015 Stevens Institute of Technology
 synopsis:            JavaScript static analysis library. 
 description:         JavaScript static analysis library. Includes label set and lexical environment analyses. The package versions follow Semantic Versioning model (semver.org).
 license:             BSD3
@@ -18,7 +18,9 @@ bug-reports:         http://github.com/jswebtools/language-ecmascript-analysis/i
 category:            Language
 build-type:          Simple
 stability:           experimental
-Tested-with:    GHC==7.6.3
+Tested-with:         GHC==7.4.2, GHC==7.6.3, GHC==7.8.3
+Extra-Source-Files:  CHANGELOG
+
 
 source-repository head
    type: git
@@ -27,7 +29,7 @@ source-repository head
 source-repository this
    type: git
    location: git://github.com/jswebtools/language-ecmascript-analysis.git
-   tag: 0.9
+   tag: 0.9.1
 
 Library
   Build-Depends: base >= 4 && < 5
@@ -43,19 +45,4 @@ Library
   Default-Extensions: DeriveDataTypeable, ScopedTypeVariables, DeriveFunctor, DeriveFoldable, DeriveTraversable, FlexibleContexts
   ghc-options:         
      -fwarn-incomplete-patterns
-  default-language:    Haskell2010       
-
-Test-Suite test
-  hs-source-dirs: test
-  Type: exitcode-stdio-1.0
-  Main-Is:             TestMain.hs
-  Build-Depends:       base >= 4 && < 5,
-                       uniplate >= 1.6 && <1.7,
-                       language-ecmascript >= 0.15 && < 1.0,
-                       HUnit,
-                       test-framework >= 0.8 && < 0.9,
-                       test-framework-hunit >= 0.3.0 && < 0.4,
-                       mtl
-  Default-Extensions: DeriveDataTypeable, ScopedTypeVariables, DeriveFunctor, DeriveFoldable, DeriveTraversable, FlexibleContexts
-  Default-Language: Haskell2010
-  ghc-options:        -fwarn-incomplete-patterns
+  default-language:    Haskell2010
