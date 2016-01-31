@@ -1,2 +1,5 @@
+=0.9.2=
+Fixed an annotation bug in the label set analysis.
+
 =0.9.1=
 Fixed documentation for Language.ECMAScript3.Analysis.LabelSet, removed the (now obsolete) test-suite.
