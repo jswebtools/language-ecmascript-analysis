@@ -81,14 +81,14 @@ annotateStatement :: Data a =>
 annotateStatement r w s = case s of
   LabelledStmt ann lab stmt -> 
     let labelset = Set.insert (id2Label lab) (r ann) 
-        newstmt  = annotateStatement r w $ w labelset <$> stmt
+        newstmt  = annotateStatement r w $ withAnnotation (w labelset) stmt
     in  LabelledStmt ann lab newstmt
   SwitchStmt {} -> 
     let labelset = Set.insert EmptyLabel (r $ getAnnotation s)
-    in  descend (annotateStatement r w) (w labelset <$> s)
+    in  descend (annotateStatement r w) $ withAnnotation (w labelset) s
   _ | isIterationStmt s ->
     let labelset = Set.insert EmptyLabel (r $ getAnnotation s)
-    in  descend (annotateStatement r w) (w labelset <$> s)
+    in  descend (annotateStatement r w) (withAnnotation (w labelset) s)
   _                     -> descend (annotateStatement r w) s
 
 id2Label :: Id a -> Label
