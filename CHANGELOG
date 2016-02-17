@@ -1,3 +1,6 @@
+=5.0.0=
+Ported to language-ecmascript-5.0.0. Groomed the code in the lexical environment analysis a bit.
+
 =0.9.2=
 Fixed an annotation bug in the label set analysis.
 
