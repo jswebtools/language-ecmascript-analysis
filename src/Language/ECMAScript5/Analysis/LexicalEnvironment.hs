@@ -1,6 +1,6 @@
 -- | A lexical environment analysis of ECMAScript programs
 
-module Language.ECMAScript3.Analysis.LexicalEnvironment
+module Language.ECMAScript5.Analysis.LexicalEnvironment
   ( env
   , localVars
   , EnvTree (..)
@@ -8,60 +8,60 @@ module Language.ECMAScript3.Analysis.LexicalEnvironment
 
 import Data.List
 import Data.Maybe
-import qualified Data.Map as M
-import Data.Map (Map)
+import qualified Data.Map.Strict as M
+import Data.Map.Strict (Map)
 import qualified Data.Set as S
 import Data.Set (Set)
 import Text.ParserCombinators.Parsec.Pos (SourcePos)
+import Data.Monoid
 
-import Language.ECMAScript3.Syntax
+import Language.ECMAScript5.Syntax
+import Language.ECMAScript5.Parser (SourceSpan (..))
 
 -- | Intermediate data structure that contains locally declared names and
 -- all references to identifers.
 data Partial = Partial {
-  partialLocals :: M.Map String SourcePos,
-  partialReferences :: M.Map String SourcePos,
+  partialLocals :: M.Map String SourceSpan,
+  partialReferences :: M.Map String SourceSpan,
   partialNested :: [Partial]
 }
 
-empty :: Partial
-empty = Partial M.empty M.empty []
+instance Monoid Partial where
+  mempty = Partial M.empty M.empty []
+  mappend p1 p2 = p1 {partialLocals = partialLocals p1 `M.union` partialLocals p2
+                     ,partialReferences = partialReferences p1 `M.union` partialReferences p2
+                     ,partialNested = partialNested p1 ++ partialNested p2}
 
-ref :: Id SourcePos -> Partial
+empty = mempty
+
+-- | Combine partial results from the same lexical scope.
+unions :: [Partial] -> Partial
+unions = mconcat
+
+  
+ref :: Id SourceSpan -> Partial
 ref (Id p v) = Partial M.empty (M.singleton v p) []
 
-decl :: Id SourcePos -> Partial
+decl :: Id SourceSpan -> Partial
 decl (Id p v) = Partial (M.singleton v p) M.empty []
 
 nest :: Partial -> Partial
 nest partial = Partial M.empty M.empty [partial]
 
--- Combine partial results from the same lexical scope.
-unions :: [Partial] -> Partial
-unions ps = Partial (M.unions (map partialLocals ps))
-                    (M.unions (map partialReferences ps))
-                    (concatMap partialNested ps)
 
-javascript :: JavaScript SourcePos -> Partial
-javascript (Script _ ss) = unions (map stmt ss)
+javascript :: Program SourceSpan -> Partial
+javascript (Program _ ss) = unions (map stmt ss)
 
 
-lvalue :: LValue SourcePos -> Partial
-lvalue lv = case lv of
-  LVar p x -> ref (Id p x)
-  LDot _ e _ -> expr e
-  LBracket _ e1 e2 -> unions [expr e1, expr e2]
-
-expr :: Expression SourcePos -> Partial
+expr :: Expression SourceSpan -> Partial
 expr e = case e of
   StringLit _ _ -> empty
   RegexpLit {} -> empty
   NumLit _ _ -> empty
-  IntLit _ _ -> empty
   BoolLit _ _ -> empty
   NullLit _ -> empty
-  ArrayLit _ es -> unions (map expr es)
-  ObjectLit _ props -> unions (map (expr.snd) props)
+  ArrayLit _ es -> unions $ catMaybes $ (map (fmap expr) es)
+  ObjectLit _ props -> unions (map prop props)
   ThisRef _ -> empty
   VarRef _ id -> empty
   DotRef _ e _ -> expr e
@@ -70,43 +70,48 @@ expr e = case e of
   PrefixExpr _ _ e -> expr e
   InfixExpr _ _ e1 e2 -> unions [expr e1, expr e2]
   CondExpr _ e1 e2 e3 -> unions [expr e1, expr e2, expr e3]
-  AssignExpr _ _ lv e -> unions [lvalue lv, expr e]
-  UnaryAssignExpr _ _ lv -> lvalue lv
-  ListExpr _ es -> unions (map expr es)
+  AssignExpr _ _ lv e -> unions [expr lv, expr e]
+  UnaryAssignExpr _ _ lv -> expr lv
+  CommaExpr _ es -> unions (map expr es)
   CallExpr _ e es -> unions [expr e, unions $ map expr es]
   FuncExpr _ _ args ss -> nest $ unions [unions $ map decl args
                                         ,unions $ map stmt ss]
 
-caseClause :: CaseClause SourcePos -> Partial
+prop :: PropAssign SourceSpan -> Partial
+prop p = case p of
+  PValue _ _ e -> expr e
+  PGet _ _ body -> unions $ map stmt body
+  PSet _ _ _ body -> unions $ map stmt body
+
+caseClause :: CaseClause SourceSpan -> Partial
 caseClause cc = case cc of
   CaseClause _ e ss -> unions [expr e, unions $ map stmt ss]
   CaseDefault _ ss -> unions $ map stmt ss
 
 -- TODO: Verify that this is a declaration and not a reference.
-catchClause :: CatchClause SourcePos -> Partial
-catchClause (CatchClause _ id s) = unions [decl id, stmt s]
+catchClause :: CatchClause SourceSpan -> Partial
+catchClause (CatchClause _ id s) = unions $ (decl id):map stmt s
 
-varDecl :: VarDecl SourcePos -> Partial
+varDecl :: VarDecl SourceSpan -> Partial
 varDecl (VarDecl _ id Nothing) = decl id
 varDecl (VarDecl _ id (Just e)) = unions [decl id, expr e]
  
-forInit :: ForInit SourcePos -> Partial
+forInit :: ForInit SourceSpan -> Partial
 forInit fi = case fi of
   NoInit -> empty
   VarInit ds -> unions $ map varDecl ds
   ExprInit e -> expr e 
 
-forInInit :: ForInInit SourcePos -> Partial
-forInInit (ForInVar id) = decl id
-forInInit (ForInLVal lv) = lvalue lv
+forInInit :: ForInInit SourceSpan -> Partial
+forInInit (ForInVar d) = varDecl d
+forInInit (ForInExpr e) =  expr e
   
-stmt :: Statement SourcePos -> Partial
+stmt :: Statement SourceSpan -> Partial
 stmt s = case s of
   BlockStmt _ ss -> unions $ map stmt ss
   EmptyStmt _ -> empty
   ExprStmt _ e -> expr e
   IfStmt _ e s1 s2 -> unions [expr e, stmt s1, stmt s2]
-  IfSingleStmt _ e s -> unions [expr e, stmt s]
   SwitchStmt _ e cases -> unions [expr e, unions $ map caseClause cases]
   WhileStmt _ e s -> unions [expr e, stmt s]
   DoWhileStmt _ s e -> unions [stmt s, expr e]
@@ -117,7 +122,7 @@ stmt s = case s of
   ForStmt _ fi  me1 me2 s -> 
     unions [forInit fi, maybe empty expr me1, maybe empty expr me2, stmt s]
   TryStmt _ s mcatch ms ->
-    unions [stmt s, maybe empty catchClause mcatch, maybe empty stmt ms]
+    unions $ catMaybes $ (catchClause <$> mcatch):(fmap (unions . map stmt) ms):(map (Just . stmt) s)
   ThrowStmt _ e -> expr e
   ReturnStmt _ me -> maybe empty expr me
   WithStmt _ e s -> unions [expr e, stmt s]
@@ -127,16 +132,16 @@ stmt s = case s of
                                       unions $ map stmt ss]]
 
 -- |The statically-determinate lexical structure of a JavaScript program.
-data EnvTree = EnvTree (M.Map String SourcePos) [EnvTree]
+data EnvTree = EnvTree (M.Map String SourceSpan) [EnvTree]
 
 -- A 'Partial' specifies identifier references in addition to identifier
 -- declarations.  We descend into a 'Partial', pushing enclosing declarations
 -- in to remove references to identifiers declared in the enclosing scope.
 -- Any referencs to identifiers not declared in either the current or the
 -- enclosing scope are local definitions of global variables.
-makeEnvTree :: Map String SourcePos -- ^enclosing environment
+makeEnvTree :: Map String SourceSpan -- ^enclosing environment
             -> Partial -- ^local environment and references
-            -> (EnvTree,Map String SourcePos) 
+            -> (EnvTree,Map String SourceSpan) 
             -- ^environment and global definitions
 makeEnvTree enclosing (Partial locals references nested) = (tree,globals) where
   nestedResults = map (makeEnvTree (locals `M.union` enclosing)) nested
@@ -144,14 +149,14 @@ makeEnvTree enclosing (Partial locals references nested) = (tree,globals) where
   globals' = (references `M.difference` locals) `M.difference` enclosing
   globals = M.unions (globals':map snd nestedResults)
 
-env :: Map String SourcePos -- ^browser/testing environment
-    -> [Statement SourcePos] 
-    -> (EnvTree,Map String SourcePos)
+env :: Map String SourceSpan -- ^browser/testing environment
+    -> [Statement SourceSpan] 
+    -> (EnvTree,Map String SourceSpan)
 env globals program = makeEnvTree globals (unions $ map stmt program)
 
 
-localVars :: [Statement SourcePos]
-          -> [(String, SourcePos)]
+localVars :: [Statement SourceSpan]
+          -> [(String, SourceSpan)]
 localVars body = M.toList locals where
   Partial locals _ _ = unions $ map stmt body
 

@@ -3,11 +3,11 @@
 -- section 12.12. The result of this analysis are useful for building
 -- control-flow graphs.
 
-module Language.ECMAScript3.Analysis.LabelSet (annotateLabelSets 
+module Language.ECMAScript5.Analysis.LabelSet (annotateLabelSets 
                                               ,Label(..)) where
 
-import Language.ECMAScript3.Syntax
-import Language.ECMAScript3.Syntax.Annotations
+import Language.ECMAScript5.Syntax
+import Language.ECMAScript5.Syntax.Annotations
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Generics.Uniplate.Data
@@ -26,18 +26,18 @@ instance Show Label where
   show EmptyLabel = ""
 
 -- | Annotates statements with their label sets. Assuming you've also imported
--- 'Language.ECMAScript3.Syntax.Annotations', 'Control.Arrow' and
+-- 'Language.ECMAScript5.Syntax.Annotations', 'Control.Arrow' and
 -- 'Data.Set', the example use would be:
 --
 -- @
--- lsAnalysis :: 'JavaScript' a -> 'JavaScript' (a, 'Set' 'Label')  
+-- lsAnalysis :: 'Program' a -> 'Program' (a, 'Set' 'Label')  
 -- lsAnalysis = annotateLabelSets snd (\\labs -> second $ union labs) . reannotate (\a -> (a, empty))
 -- @
 annotateLabelSets :: Data a =>
                      (a -> Set Label) -- ^ annotation read function
                   -> (Set Label -> a -> a) -- ^ annotation write function
-                  -> JavaScript a  -- ^ the script to annotate
-                  -> JavaScript a
+                  -> Program a  -- ^ the program to analyse
+                  -> Program a
 annotateLabelSets r w = transformBi (annotateFuncStmtBodies r w)
                       . transformBi (annotateFuncExprBodies r w)
                       . descendBi   (annotateStatement r w)
