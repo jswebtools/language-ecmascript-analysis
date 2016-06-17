@@ -14,6 +14,7 @@ import Data.Generics.Uniplate.Data
 import Data.Data (Data)
 import Control.Applicative
 import Data.Typeable (Typeable)
+import Lens.Simple
 
 -- | Labels are either strings (identifiers) or /empty/ (see 12.12 of
 -- the spec)
@@ -81,14 +82,14 @@ annotateStatement :: Data a =>
 annotateStatement r w s = case s of
   LabelledStmt ann lab stmt -> 
     let labelset = Set.insert (id2Label lab) (r ann) 
-        newstmt  = annotateStatement r w $ withAnnotation (w labelset) stmt
+        newstmt  = annotateStatement r w $ stmt&annotation %~ w labelset
     in  LabelledStmt ann lab newstmt
   SwitchStmt {} -> 
     let labelset = Set.insert EmptyLabel (r $ getAnnotation s)
-    in  descend (annotateStatement r w) $ withAnnotation (w labelset) s
+    in  descend (annotateStatement r w) $ s&annotation %~ w labelset
   _ | isIterationStmt s ->
     let labelset = Set.insert EmptyLabel (r $ getAnnotation s)
-    in  descend (annotateStatement r w) (withAnnotation (w labelset) s)
+    in  descend (annotateStatement r w) (s&annotation %~ w labelset)
   _                     -> descend (annotateStatement r w) s
 
 id2Label :: Id a -> Label

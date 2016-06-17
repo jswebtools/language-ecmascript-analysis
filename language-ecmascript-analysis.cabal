@@ -36,6 +36,7 @@ Library
                , uniplate >= 1.6 && < 1.7
                , parsec >= 3 && < 4
                , containers >= 0.1 && < 0.6
+               , lens-simple
   hs-source-dirs:      
      src
   exposed-modules:     
